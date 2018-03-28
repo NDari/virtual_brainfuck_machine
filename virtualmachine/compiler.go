@@ -1,5 +1,9 @@
 package main
 
+import (
+	"strconv"
+)
+
 type Compiler struct {
 	code       string
 	codeLength int
@@ -47,6 +51,10 @@ func (c *Compiler) Compile() []*Instruction {
 			c.CompileFoldableInstruction('.', PutChar)
 		case ',':
 			c.CompileFoldableInstruction(',', ReadChar)
+		default:
+			if isDigit(current) {
+				c.CompileNumberedInstruction()
+			}
 		}
 
 		c.position++
@@ -70,4 +78,42 @@ func (c *Compiler) EmitWithArg(insType InsType, arg int) int {
 	ins := &Instruction{Type: insType, Argument: arg}
 	c.instructions = append(c.instructions, ins)
 	return len(c.instructions) - 1
+}
+
+func (c *Compiler) CompileNumberedInstruction() {
+	startPos := c.position
+	for c.position < c.codeLength-1 && isDigit(c.code[c.position+1]) {
+		c.position++
+	}
+	n, err := strconv.Atoi(c.code[startPos : c.position+1])
+	if err != nil {
+		panic("failed to read digits")
+	}
+	var op byte
+	if c.position < c.codeLength-1 {
+		op = c.code[c.position+1]
+	} else {
+		panic("digits where not followed by operator")
+	}
+
+	switch op {
+	case '+':
+		c.EmitWithArg(Plus, n)
+	case '-':
+		c.EmitWithArg(Minus, n)
+	case '<':
+		c.EmitWithArg(Left, n)
+	case '>':
+		c.EmitWithArg(Right, n)
+	case '.':
+		c.EmitWithArg(PutChar, n)
+	case ',':
+		c.EmitWithArg(ReadChar, n)
+	default:
+		panic("booo")
+	}
+}
+
+func isDigit(b byte) bool {
+	return b >= '0' && b <= '9'
 }

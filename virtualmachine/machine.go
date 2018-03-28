@@ -1,26 +1,28 @@
 package main
 
-import "io"
+import (
+	"bufio"
+)
 
 type Machine struct {
 	code []*Instruction
 	ip   int
 
-	memory [30000]int
+	memory [30000]int32
 	dp     int
 
-	input  io.Reader
-	output io.Writer
+	input  *bufio.Reader
+	output *bufio.Writer
 
-	readBuf []byte
+	readBuf []rune
 }
 
-func NewMachine(instructions []*Instruction, in io.Reader, out io.Writer) *Machine {
+func NewMachine(instructions []*Instruction, in *bufio.Reader, out *bufio.Writer) *Machine {
 	return &Machine{
 		code:    instructions,
 		input:   in,
 		output:  out,
-		readBuf: make([]byte, 1),
+		readBuf: make([]rune, 1),
 	}
 }
 
@@ -30,9 +32,9 @@ func (m *Machine) Execute() {
 
 		switch ins.Type {
 		case Plus:
-			m.memory[m.dp] += ins.Argument
+			m.memory[m.dp] += int32(ins.Argument)
 		case Minus:
-			m.memory[m.dp] -= ins.Argument
+			m.memory[m.dp] -= int32(ins.Argument)
 		case Right:
 			m.dp += ins.Argument
 		case Left:
@@ -62,25 +64,23 @@ func (m *Machine) Execute() {
 }
 
 func (m *Machine) readChar() {
-	n, err := m.input.Read(m.readBuf)
+	n, s, err := m.input.ReadRune()
+	if s != 4 {
+		panic("Rune was not 4 bytes")
+	}
 	if err != nil {
 		panic(err)
 	}
-	if n != 1 {
-		panic("wrong num bytes read")
-	}
-
-	m.memory[m.dp] = int(m.readBuf[0])
+	m.memory[m.dp] = n
 }
 
 func (m *Machine) putChar() {
-	m.readBuf[0] = byte(m.memory[m.dp])
-
-	n, err := m.output.Write(m.readBuf)
+	_, err := m.output.WriteRune(rune(m.memory[m.dp]))
 	if err != nil {
 		panic(err)
 	}
-	if n != 1 {
-		panic("wrong num bytes written")
+	err = m.output.Flush()
+	if err != nil {
+		panic(err)
 	}
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -42,7 +43,7 @@ func main() {
 	compiler := NewCompiler(string(code))
 	instructions := compiler.Compile()
 
-	m := NewMachine(instructions, os.Stdin, os.Stdout)
+	m := NewMachine(instructions, bufio.NewReader(os.Stdin), bufio.NewWriter(os.Stdout))
 	m.Execute()
 	//
 	// if memprofile != "" {
